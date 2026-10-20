@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telugu TTS Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-xl w-full bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 space-y-5">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Telugu AI Voiceover Studio</h1>
+      <p class="text-sm text-slate-400">Deployed free on Vercel Serverless</p>
+    </div>
+    
+    <div>
+      <label class="block text-sm font-medium text-slate-300 mb-1">Telugu Script</label>
+      <textarea id="text" rows="5" class="w-full bg-slate-950 border border-slate-700 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans text-base text-white" 
+        placeholder="ఇక్కడ మీ స్క్రిప్ట్ పేస్ట్ చేయండి..."></textarea>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Voice</label>
+        <select id="voice" class="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-white">
+          <option value="mohan">Mohan (Male)</option>
+          <option value="shruti">Shruti (Female)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Speed</label>
+        <select id="rate" class="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-white">
+          <option value="-10%">Slow (-10%)</option>
+          <option value="+0%" selected>Normal (Standard)</option>
+          <option value="+10%">Fast (+10%)</option>
+          <option value="+20%">High Pace (+20%)</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="generateAudio()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-lg shadow-md transition duration-150">
+      Generate Audio
+    </button>
+
+    <div id="outputArea" class="hidden space-y-3 pt-3 border-t border-slate-700">
+      <audio id="player" controls class="w-full"></audio>
+      <a id="downloadBtn" class="block w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-lg shadow transition">
+        Download MP3
+      </a>
+    </div>
+  </div>
+
+  <script>
+    async function generateAudio() {
+      const text = document.getElementById('text').value.trim();
+      const voice = document.getElementById('voice').value;
+      const rate = document.getElementById('rate').value;
+      const btn = document.getElementById('btn');
+      const outputArea = document.getElementById('outputArea');
+
+      if (!text) {
+        alert("Please enter some Telugu text.");
+        return;
+      }
+
+      btn.innerText = "Generating voice...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/api/synthesize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice, rate })
+        });
+
+        if (!response.ok) throw new Error("Synthesis failed");
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const player = document.getElementById('player');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        player.src = url;
+        downloadBtn.href = url;
+        downloadBtn.download = `telugu_voice_${Date.now()}.mp3`;
+
+        outputArea.classList.remove('hidden');
+        player.play();
+      } catch (err) {
+        alert("Error generating speech. Check function logs in Vercel.");
+      } finally {
+        btn.innerText = "Generate Audio";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
