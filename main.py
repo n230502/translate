@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
 import edge_tts
+import asyncio
 import os
 
 app = FastAPI()
@@ -12,7 +13,6 @@ VOICES = {
 
 @app.get("/")
 async def serve_frontend():
-    # Check public folder first, then root folder
     if os.path.exists("public/index.html"):
         return FileResponse("public/index.html")
     elif os.path.exists("index.html"):
@@ -30,14 +30,30 @@ async def synthesize_telugu(payload: dict):
 
     selected_voice = VOICES.get(voice_key, "te-IN-MohanNeural")
 
-    try:
-        communicate = edge_tts.Communicate(text, voice=selected_voice, rate=rate)
-        audio_data = bytearray()
+    # Automatically retry up to 5 times behind the scenes
+    MAX_ATTEMPTS = 5
+    last_error = None
 
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data.extend(chunk["data"])
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            communicate = edge_tts.Communicate(text, voice=selected_voice, rate=rate)
+            audio_data = bytearray()
 
-        return Response(content=bytes(audio_data), media_type="audio/mpeg")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.extend(chunk["data"])
+
+            # If audio was successfully received, return it immediately
+            if len(audio_data) > 0:
+                return Response(content=bytes(audio_data), media_type="audio/mpeg")
+
+        except Exception as e:
+            last_error = e
+            # Wait briefly before retrying (0.4s, 0.8s, etc.)
+            await asyncio.sleep(0.4 * attempt)
+
+    # If all 5 attempts fail, return error
+    raise HTTPException(
+        status_code=500, 
+        detail=f"Speech synthesis failed after {MAX_ATTEMPTS} attempts: {str(last_error)}"
+    )
