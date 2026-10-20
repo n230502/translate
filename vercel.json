@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/synthesize.py": {
-      "maxDuration": 30
-    }
-  }
-}
