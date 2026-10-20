@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 import edge_tts
+import os
 
 app = FastAPI()
 
@@ -8,6 +9,15 @@ VOICES = {
     "mohan": "te-IN-MohanNeural",
     "shruti": "te-IN-ShrutiNeural"
 }
+
+@app.get("/")
+async def serve_frontend():
+    # Check public folder first, then root folder
+    if os.path.exists("public/index.html"):
+        return FileResponse("public/index.html")
+    elif os.path.exists("index.html"):
+        return FileResponse("index.html")
+    raise HTTPException(status_code=404, detail="index.html not found")
 
 @app.post("/api/synthesize")
 async def synthesize_telugu(payload: dict):
