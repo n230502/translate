@@ -9,8 +9,8 @@ VOICES = {
     "shruti": "te-IN-ShrutiNeural"
 }
 
+@app.post("/")
 @app.post("/api/synthesize")
-@app.post("/synthesize")
 async def synthesize_telugu(payload: dict):
     text = payload.get("text", "").strip()
     voice_key = payload.get("voice", "mohan")
